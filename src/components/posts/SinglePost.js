@@ -1,18 +1,21 @@
-import { useSelector } from 'react-redux'
-
 import PostAuthor from "./PostAuthor";
 import TimeAgo from "./TimeAgo";
 import ReactionButtons from "./ReactionButtons";
 
 import { useParams } from 'react-router-dom';
 import { Link } from 'react-router-dom';
-import { selectPostById } from '../../reducers/postsSlice';
+import {useGetPostsQuery } from '../../reducers/postsSlice';
 
 const SinglePost = () => {
     const { postId } = useParams()
+    const { post, isLoading } = useGetPostsQuery('getPosts', {
+        selectFromResult: ({ data, isLoading }) => ({
+            post: data?.entities[postId],
+            isLoading
+        }),
+    })
 
-    const post = useSelector((state) => selectPostById(state, Number(postId)))
-
+    if (isLoading) return <p>Loading...</p>
     if (!post) {
         return (
             <section>

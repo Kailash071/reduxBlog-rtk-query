@@ -1,26 +1,37 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useState } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
 import { useParams, useNavigate } from 'react-router-dom'
-import { selectPostById, updatePost , deletePost} from '../../reducers/postsSlice'
-import { useUsersSelector } from "../../reducers/usersSlice";
+import {useUpdatePostMutation,useDeletePostMutation,useGetPostsQuery} from '../../reducers/postsSlice'
+import { useGetUsersQuery } from "../../reducers/usersSlice";
 
 
 const PostEdit = () => {
     const { postId } = useParams()
     const navigate = useNavigate()
-    const dispatch = useDispatch()
-  
-    
-    const users = useSelector(useUsersSelector);
-    const post = useSelector((state) => selectPostById(state, Number(postId)))
+    const [deletePost] = useDeletePostMutation()
+    const [updatePost, { isLoading }] = useUpdatePostMutation()
+    const { data: users, isSuccess: isSuccessUsers } = useGetUsersQuery('getUsers')
+    const { post, isLoading: isLoadingPosts, isSuccess } = useGetPostsQuery('getPosts', {
+        selectFromResult: ({ data, isLoading, isSuccess }) => ({
+            post: data?.entities[postId],
+            isLoading,
+            isSuccess
+        }),
+    })
 
-    const [title, setTitle] = useState(post?.title);
-    const [userId, setUserId] = useState(post?.userId);
-    const [content, setContent] = useState(post?.body);
-    const [requestStatus,setRequestStatus] = useState('idle')
+    const [title, setTitle] = useState(post?post.title:'');
+    const [userId, setUserId] = useState(post?post.userId:'');
+    const [content, setContent] = useState(post?post.body:"");
     
-    const canSave = [title, content, userId].every(Boolean) && requestStatus === 'idle';
+    useEffect(() => {
+        if (isSuccess) {
+            setTitle(post.title)
+            setContent(post.body)
+            setUserId(post.userId)
+        }
+    }, [isSuccess, post?.title, post?.body, post?.userId])
+
+    if (isLoadingPosts) return <p>Loading...</p>
 
     if (!post) {
         return (
@@ -29,31 +40,33 @@ const PostEdit = () => {
             </section>
         )
     }
+
+    const canSave = [title, content, userId].every(Boolean) && !isLoading;
     const onSavePostClicked = () => {
         if (canSave) {
          try {
-            setRequestStatus('pending')
-            dispatch(updatePost({ id:Number(post.id),title, body: content, userId,reactions:post.reactions })).unwrap()
+            updatePost({ id:Number(post.id),title, body: content, userId,reactions:post.reactions }).unwrap()
             setTitle("");
             setContent("");
             setUserId('')
             navigate('/')
          } catch (error) {
             console.error('Failed to save the post', error)
-         }finally{
-            setRequestStatus('idle')
          }
         }
       };
-      const usersOptions = users.map((user) => (
-        <option key={user.id} value={user.id}>
-          {user.name}
-        </option>
-      ));
+      let usersOptions
+      if (isSuccessUsers) {
+          usersOptions = users.ids.map(id => (
+              <option
+                  key={id}
+                  value={id}
+              >{users.entities[id].name}</option>
+          ))
+      }
       const onDeletePostClicked = () => {
         try {
-            setRequestStatus('pending')
-            dispatch(deletePost({ id: post.id })).unwrap()
+           deletePost({ id: post.id }).unwrap()
 
             setTitle('')
             setContent('')
@@ -61,8 +74,6 @@ const PostEdit = () => {
             navigate('/')
         } catch (err) {
             console.error('Failed to delete the post', err)
-        } finally {
-            setRequestStatus('idle')
         }
     }
   return (

@@ -1,24 +1,45 @@
 import React from "react"
 import { useSelector } from "react-redux"
 import { Link, useParams } from "react-router-dom"
-import { selectUserById } from "../../reducers/usersSlice"
-import {  selectPostByUser } from "../../reducers/postsSlice"
+import {useGetUsersQuery } from "../../reducers/usersSlice"
+import {  useGetPostByUserIdQuery } from "../../reducers/postsSlice"
 const UserPage = () => {
   const { userId } = useParams()
-  const user = useSelector((state) => selectUserById(state, Number(userId)))
-  const postsForUser = useSelector((state) =>
-    selectPostByUser(state, Number(userId))
-  )
+  const { user,
+    isLoading: isLoadingUser,
+    isSuccess: isSuccessUser,
+    isError: isErrorUser,
+    error: errorUser
+} = useGetUsersQuery('getUsers', {
+    selectFromResult: ({ data, isLoading, isSuccess, isError, error }) => ({
+        user: data?.entities[userId],
+        isLoading,
+        isSuccess,
+        isError,
+        error
+    }),
+})
+  const {data:postsForUser,isLoading,isSuccess,isError,error} = useGetPostByUserIdQuery(userId)
+  let content;
+    if (isLoading || isLoadingUser) {
+        content = <p>Loading...</p>
+    } else if (isSuccess && isSuccessUser) {
+        const { ids, entities } = postsForUser
+        content = ids.map(id => (
+            <li key={id} className="list-group-items">
+                <Link to={`/post/${id}`}>{entities[id].title}</Link>
+            </li>
+        ))
+    } else if (isError || isErrorUser) {
+        content = <p>{error}</p>;
+    }
+
   return (
     <section>
       <h2>{user?.name}</h2>
 
       <ol className="list-group">
-        {postsForUser.map((post) => (
-          <li key={post.id} className="list-group-item">
-            <Link to={`/post/${post.id}`}>{post.title}</Link>
-          </li>
-        ))}
+        {content}
       </ol>
     </section>
   )

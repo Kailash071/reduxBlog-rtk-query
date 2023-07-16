@@ -1,22 +1,38 @@
 import React from "react"
 import { Link } from "react-router-dom"
-import { useUsersSelector } from "../../reducers/usersSlice"
+import { useGetUsersQuery } from "../../reducers/usersSlice"
 import { useSelector } from "react-redux"
 const UsersList = () => {
-  const users = useSelector(useUsersSelector)
+  const {
+    data: users,
+    isLoading,
+    isSuccess,
+    isError,
+    error,
+  } = useGetUsersQuery("getUsers")
 
-  return (
-    <>
-      <h2 className="mt-1">UsersList</h2>
-      <ul className="list-group">
-        {users.map((user) => (
-          <li key={user.id} className="list-group-item list-group-item-action">
-            <Link to={`/user/${user.id}`}>{user.name}</Link>
-          </li>
-        ))}
-      </ul>
-    </>
-  )
+  let content
+  if (isLoading) {
+    content = <p>"Loading..."</p>
+  } else if (isSuccess) {
+    const renderedUsers = users.ids.map((userId) => (
+      <li key={userId} className="list-group-item list-group-item-action">
+        <Link to={`/user/${userId}`}>{users.entities[userId].name}</Link>
+      </li>
+    ))
+
+    content = (
+      <section>
+        <h2>Users</h2>
+
+        <ul>{renderedUsers}</ul>
+      </section>
+    )
+  } else if (isError) {
+    content = <p>{error}</p>
+  }
+
+  return content
 }
 
 export default UsersList
