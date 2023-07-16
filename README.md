@@ -1,8 +1,13 @@
 # Getting Started with Create React App
 
 This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Before starting
 
 ## Available Scripts
+
+Add below command to start json-server for fake rest api and server functionality to work with rtk-query operation
+
+### `npx json-server --watch data/db.json --port 3500`
 
 In the project directory, you can run:
 
